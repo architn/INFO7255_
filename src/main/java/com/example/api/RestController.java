@@ -247,13 +247,13 @@ public class RestController extends API {
 	        {
 	        	String actualEtag = null;
 	        	String newETag = "";
-		        JSONObject jsonObject = null;
+		        JSONObject updatedJSONObject = null;
 		        
 		        authorizationStatus = authService.authorize(token);
 				if(authorizationStatus.containsValue(true))
 				{
 					String key = jsonService.GenerateKeyForJSONObject(objectType, objectId);
-					jsonObject = jsonService.GetPlanByKey(key);
+					JSONObject jsonObject = jsonService.GetPlanByKey(key);
 					if(!jsonService.DoesPlanExistInSystem(key))
 					{
 						return notFound(AppConstants.OBJECT_NOT_FOUND);
@@ -266,14 +266,13 @@ public class RestController extends API {
 			                        .body(new JSONObject().put("message", "Plan was updated by another user").toString());
 			           }
 					  JSONObject bodyOfUpdatedJSON = jsonService.ValidateWhetherSchemaIsValid(body);
-					  jsonObject = jsonService.mergeJson(bodyOfUpdatedJSON, jsonService.GenerateKeyForJSONObject(objectType, objectId));
-					  
+					  updatedJSONObject = jsonService.mergeJson(bodyOfUpdatedJSON, jsonService.GenerateKeyForJSONObject(objectType, objectId));
 					  if(jsonObject == null || jsonObject.isEmpty())
 					  {
 						  return notFound(AppConstants.OBJECT_NOT_FOUND);
 					  }
 					  newETag = MD5Helper.hashString(body);
-					  jsonService.updatePlan(bodyOfUpdatedJSON, newETag, objectType, objectId);
+					  jsonService.updatePlan(updatedJSONObject, newETag, objectType, objectId);
 				}
 		       return successfulUpdate(newETag);
 	        }

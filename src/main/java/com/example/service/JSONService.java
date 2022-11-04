@@ -153,7 +153,7 @@ public class JSONService {
                 if (jsonValue instanceof JSONObject) 
                 {
                     JSONObject jsonValueObject = (JSONObject)jsonValue;
-                    String jsonObjKey = jsonKey + "_" + jsonValueObject.get("objectId");
+                    String jsonObjKey = jsonKey + "-" + jsonValueObject.get("objectId");
                     if (((JSONObject)savedObject.get(jsonKey)).get("objectId").equals(jsonValueObject.get("objectId"))) 
                     {
                         savedObject.put(jsonKey, jsonValue);

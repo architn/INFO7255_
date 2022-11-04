@@ -1,0 +1,12 @@
+MVN Profile: 
+
+Goals: clean verify
+Target: pom.xml
+
+To push code: 
+
+git push -u origin master
+
+To pull code: 
+
+git pull origin master
