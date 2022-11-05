@@ -61,7 +61,7 @@ public class RestController extends API {
 				 }
 				 else 
 				 {
-					 return ResponseEntity.status(HttpStatus.CONFLICT).body("{ message : '" + AppConstants.OBJECT_ALREADY_EXISTS + "'}");
+					 return conflict(AppConstants.OBJECT_ALREADY_EXISTS);
 				 }
 				 
 			 }
@@ -69,14 +69,14 @@ public class RestController extends API {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("{ message : '" + v.getMessage() + "' }");
 				}
 			 catch(Exception ex) {
-				 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{ message : '" + AppConstants.INTERNAL_SERVER_ERROR + "'}");
+				 return internalServerError(AppConstants.INTERNAL_SERVER_ERROR);
 
 			 }
 			 return created(ETag);
 	 	}
 	 	else
 	 	{
-			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("{ message : '" +authorizationStatus.keySet().toString() + "' }");
+	 		return forbidden(authorizationStatus.keySet().toString());
 	 	}
 	 }
 	 
@@ -105,19 +105,20 @@ public class RestController extends API {
 					 ETag = jsonService.GetETagByETagKey(eTagKey);
 					 String hashedETag = jsonService.GetETagByETagKey(eTagKey);
 				}
-				catch(NullPointerException n) {
-					 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("{ message : '" + AppConstants.OBJECT_NOT_FOUND + "' }");
+				catch(NullPointerException n) 
+				{
+					 return notFound(AppConstants.OBJECT_NOT_FOUND);
 				}
-				catch(Exception ex) {
-					return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{ message : '" + ex.getMessage() + "' }");
+				catch(Exception ex) 
+				{
+					 return internalServerError(ex.getMessage());
 				}
-				return ResponseEntity.status(HttpStatus.OK).eTag(ETag).body(jsonInString);
+				return OK(jsonInString, ETag);
 		 	}
 		 	else 
 		 	{
-				return ResponseEntity.status(HttpStatus.FORBIDDEN).body("{ message : '" +authorizationStatus.keySet().toString() + "' }");
+		 		return forbidden(authorizationStatus.keySet().toString());
 		 	}
-		 	
 	 }
 	 
 	 /**

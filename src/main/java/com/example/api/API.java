@@ -51,4 +51,16 @@ public class API {
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new JSONObject().put("message", message).toString());
 
 	}
+	
+	public ResponseEntity<String> conflict(String message)
+	{
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(new JSONObject().put("message", message).toString());
+
+	}
+	
+	public ResponseEntity<String> badRequest(String message)
+	{
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new JSONObject().put("message", message).toString());
+
+	}
 }
