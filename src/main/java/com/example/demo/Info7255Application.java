@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication(scanBasePackages = "com.example.api")
-@ComponentScan({"com.example.api"})
+@ComponentScan({"com.example.api", "com.example.queuing", "com.example.service"})
 public class Info7255Application {
 
 	public static void main(String[] args) {

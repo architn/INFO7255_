@@ -24,6 +24,11 @@ public class AuthorizationService {
 	static RSAKey rsaJWKPublic = null;
 	static RSAKey rsaJWK = null;
 	
+	public static AuthorizationService ReturnAuthorizationService()
+	{
+		return new AuthorizationService();
+	}
+	
 	
 	public String generateToken() throws JOSEException
 	{

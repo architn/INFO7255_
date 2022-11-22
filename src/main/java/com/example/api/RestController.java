@@ -8,6 +8,8 @@ import org.everit.json.schema.ValidationException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.example.helper.MD5Helper;
+import com.example.queuing.MessageConfig;
 import com.example.service.AuthorizationService;
 import com.example.service.JSONService;
 
@@ -29,9 +32,14 @@ public class RestController extends API {
 	
 	 
 	 static HashMap<String, Boolean> authorizationStatus = new HashMap<>();
+	 @Autowired
+	 AuthorizationService authService;
+	 @Autowired
+	 JSONService jsonService;
 	 
-	 AuthorizationService authService = new AuthorizationService();
-	 JSONService jsonService = new JSONService();
+	 private final RabbitTemplate template = new RabbitTemplate();
+	 
+	 
 
 
 	 
@@ -72,6 +80,7 @@ public class RestController extends API {
 				 return internalServerError(AppConstants.INTERNAL_SERVER_ERROR);
 
 			 }
+			 template.convertAndSend(MessageConfig.EXCHANGE, MessageConfig.ROUTING_KEY, body);
 			 return created(ETag);
 	 	}
 	 	else

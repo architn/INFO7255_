@@ -3,6 +3,7 @@ package com.example.service;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.springframework.stereotype.Service;
 
 import com.example.dao.PlanDAO;
 import com.example.helper.MD5Helper;
@@ -13,7 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
 
-
+@Service
 public class JSONService {
 	
 	 PlanDAO planDAO = new PlanDAO();
@@ -23,6 +24,11 @@ public class JSONService {
 	  * @param json
 	  * @return
 	  */
+	 
+	 public static JSONService ReturnJSONService()
+	 {
+		 return new JSONService();
+	 }
 	
 	public JSONObject ValidateWhetherSchemaIsValid(String json) 
 	{
