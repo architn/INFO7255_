@@ -21,8 +21,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.example.helper.MD5Helper;
-import com.example.queuing.MessageConfig;
+import com.example.demo.Info7255Application;
+import com.example.helper.*;
 import com.example.service.AuthorizationService;
 import com.example.service.JSONService;
 
@@ -32,16 +32,17 @@ public class RestController extends API {
 	
 	 
 	 static HashMap<String, Boolean> authorizationStatus = new HashMap<>();
+	 
 	 @Autowired
 	 AuthorizationService authService;
+	 
 	 @Autowired
 	 JSONService jsonService;
 	 
-	 private final RabbitTemplate template = new RabbitTemplate();
+	 @Autowired
+	 private RabbitTemplate template;
 	 
 	 
-
-
 	 
 	 /**
 	  * This method is used to save JSON data to Redis
@@ -80,7 +81,7 @@ public class RestController extends API {
 				 return internalServerError(AppConstants.INTERNAL_SERVER_ERROR);
 
 			 }
-			 template.convertAndSend(MessageConfig.EXCHANGE, MessageConfig.ROUTING_KEY, body);
+			 template.convertAndSend(Info7255Application.EXCHANGE, body);
 			 return created(ETag);
 	 	}
 	 	else

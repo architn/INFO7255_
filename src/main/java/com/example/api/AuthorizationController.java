@@ -4,7 +4,6 @@ import java.util.HashMap;
 
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -18,7 +17,8 @@ import com.example.service.AuthorizationService;
 public class AuthorizationController extends API {
 
 	@Autowired
-	AuthorizationService authService = new AuthorizationService();
+	AuthorizationService authService;
+	
 	AppConstants AppConstants = new AppConstants();
 	static HashMap<String, Boolean> authorizationStatus = new HashMap<>();
 	
