@@ -1,18 +1,18 @@
 package com.example.demo;
 
-import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+
+import com.example.service.IndexingService;
 
 @SpringBootApplication(scanBasePackages = "com.example.api")
 @ComponentScan({"com.example.api", "com.example.queuing", "com.example.service"})
@@ -38,18 +38,22 @@ public class Info7255Application {
 	{
         return BindingBuilder.bind(queue).to(exchange).with(QUEUE);
 	}
+	
 	@Bean
-	public MessageConverter converter()
-	{
-		return new Jackson2JsonMessageConverter();
+	MessageListenerAdapter listenerAdapter(IndexingService receiver) {
+		return new MessageListenerAdapter(receiver, "receiveMessage");
 	}
+
 	@Bean
-	public AmqpTemplate template(ConnectionFactory connectionFactory)
-	{
-		final RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-		rabbitTemplate.setMessageConverter(converter());
-		return rabbitTemplate;
+	SimpleMessageListenerContainer container(ConnectionFactory connectionFactory,
+											 MessageListenerAdapter listenerAdapter) {
+		SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
+		container.setConnectionFactory(connectionFactory);
+		container.setQueueNames(QUEUE);
+		container.setMessageListener(listenerAdapter);
+		return container;
 	}
+
 	
 	public static void main(String[] args) {
 		SpringApplication.run(Info7255Application.class, args);
