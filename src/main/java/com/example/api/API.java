@@ -29,6 +29,12 @@ public class API {
 		return ResponseEntity.status(HttpStatus.OK).eTag(eTag).body(jsonBody);
 	}
 	
+	public ResponseEntity<String> OK(String message)
+	{
+		return ResponseEntity.status(HttpStatus.OK).body(new JSONObject().put("message", message).toString());
+
+	}
+	
 	public ResponseEntity<String> successfulUpdate(String eTag)
 	{
 		return ResponseEntity.status(HttpStatus.OK).eTag(eTag).body(new JSONObject().put("message", AppConstants.OBJECT_UPDATED).toString());

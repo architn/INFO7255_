@@ -53,15 +53,16 @@ public class IndexingService {
 
 
             if (!indexExists()) {
+            	System.out.println("Index does not exist");
                 createElasticIndex();
             }
 
             Map<String, Map<String, Object>> MapOfDocuments = new HashMap<>();
             convertMapToDocumentIndex(plan, "", "plan", MapOfDocuments);
-    //        System.out.println("------------------MapOfDocuments-------------------------");
-    //        System.out.println(MapOfDocuments.toString());
-    //        System.out.println("------------------newMap-------------------------");
-    //        System.out.println(newMap.toString());
+            System.out.println("------------------MapOfDocuments-------------------------");
+            System.out.println(MapOfDocuments.toString());
+            System.out.println("------------------newMap-------------------------");
+//            System.out.println(newMap.toString());
             for (Map.Entry<String, Map<String, Object>> entry : MapOfDocuments.entrySet()) {
                 System.out.println("------------------entry-------------------------");
                 System.out.println(entry);
@@ -69,7 +70,7 @@ public class IndexingService {
                 String objectId = entry.getKey().split(":")[1];
                 IndexRequest request = new IndexRequest(IndexName);
                 request.id(objectId);
-                //request.source(entry.getValue());
+                request.source(entry.getValue());
                 request.routing(parentId);
                 request.setRefreshPolicy("wait_for");
                 System.out.println("------------------request-------------------------");
@@ -79,7 +80,7 @@ public class IndexingService {
 
             }
         }catch (Exception e){
-            System.out.println(e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -189,7 +190,7 @@ public class IndexingService {
         MapOfDocuments.put(id, valueMap);
 //        System.out.println(MapOfDocuments);
 //        System.out.println("11111======map==========================================");
-//        System.out.println(map);
+        System.out.println(map);
         return MapOfDocuments;
     }
 
@@ -217,7 +218,7 @@ public class IndexingService {
         CreateIndexRequest request = new CreateIndexRequest(IndexName);
         request.settings(Settings.builder().put("index.number_of_shards", 1).put("index.number_of_replicas", 1));
         XContentBuilder mapping = getMapping();
-        //request.mapping(mapping);
+        request.mapping(mapping);
         CreateIndexResponse createIndexResponse = client.indices().create(request, RequestOptions.DEFAULT);
 
         boolean acknowledged = createIndexResponse.isAcknowledged();

@@ -10,3 +10,8 @@ git push -u origin master
 To pull code: 
 
 git pull origin master
+
+
+Username for elastic user: elastic
+Password for elastic user: 7TMk9VdPAoWnpEdvDlKh
+Kibana Password: eyJ2ZXIiOiI4LjUuMiIsImFkciI6WyIxMC4wLjAuMjI4OjkyMDAiXSwiZmdyIjoiN2Q0YmRjYTgxYmM1N2NmNGU4ZTI5NjBlM2E1NTNjZmVlZGRiOTgyYjIxODIzNzhiMjU1YTcyODcyNzBlYmM0MyIsImtleSI6ImQ1MUV5WVFCdHliVVVHamhKMEZXOjgyQXAzbXZEU2pxYmw1SC1MeG1sWmcifQ==

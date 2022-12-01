@@ -15,7 +15,7 @@ import org.springframework.context.annotation.ComponentScan;
 import com.example.service.IndexingService;
 
 @SpringBootApplication(scanBasePackages = "com.example.api")
-@ComponentScan({"com.example.api", "com.example.queuing", "com.example.service"})
+@ComponentScan({"com.example.*"})
 public class Info7255Application {
 	public static final String EXCHANGE = "INFO7255_EXCHANGE";
 	public static final String QUEUE = "INFO7255_QUEUE";
@@ -41,6 +41,7 @@ public class Info7255Application {
 	
 	@Bean
 	MessageListenerAdapter listenerAdapter(IndexingService receiver) {
+		System.out.println("In listener adapter");
 		return new MessageListenerAdapter(receiver, "receiveMessage");
 	}
 
@@ -51,6 +52,7 @@ public class Info7255Application {
 		container.setConnectionFactory(connectionFactory);
 		container.setQueueNames(QUEUE);
 		container.setMessageListener(listenerAdapter);
+		System.out.println("In container");
 		return container;
 	}
 

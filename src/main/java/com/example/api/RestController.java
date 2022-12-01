@@ -1,5 +1,6 @@
 package com.example.api;
 
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,7 +24,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.example.demo.Info7255Application;
 import com.example.helper.*;
+import com.example.model.Plan;
 import com.example.service.AuthorizationService;
+import com.example.service.IndexingService;
 import com.example.service.JSONService;
 
 
@@ -31,7 +34,7 @@ import com.example.service.JSONService;
 public class RestController extends API {
 	
 	 
-	 static HashMap<String, Boolean> authorizationStatus = new HashMap<>();
+	 static Map<String, Boolean> authorizationStatus = new HashMap<>();
 	 
 	 @Autowired
 	 AuthorizationService authService;
@@ -41,19 +44,31 @@ public class RestController extends API {
 	 
 	 @Autowired
 	 private RabbitTemplate template;
+
 	 
-	 
+	 @RequestMapping(method = RequestMethod.GET, value = "/plan")
+	 public ResponseEntity<String> GetAllPlans(@RequestHeader(name = HttpHeaders.AUTHORIZATION) String token)
+	 {
+		 authorizationStatus = authService.authorize(token);
+		 if(authorizationStatus.containsValue(true))
+		 {
+			 Map<String, Plan> plans = jsonService.findAll();
+			 return OK(AppConstants.SUCCESS_MESSAGE) ;
+		 }
+		 return forbidden(authorizationStatus.keySet().toString());
+	 }
 	 
 	 /**
 	  * This method is used to save JSON data to Redis
 	  * @param body9
 	  * @param headers
 	  * @return
+	 * @throws IOException 
 	  */
 	 
-	 @RequestMapping(value = "/add", method = RequestMethod.POST)
+	 @RequestMapping(value = "/plan", method = RequestMethod.POST)
 	 public ResponseEntity<String> Save(@RequestBody String body, @RequestHeader Map<String, String> headers, 
-			 @RequestHeader(name = HttpHeaders.AUTHORIZATION) String token)
+			 @RequestHeader(name = HttpHeaders.AUTHORIZATION) String token) throws IOException
 	 {
 		authorizationStatus = authService.authorize(token);
 	 	if(authorizationStatus.containsValue(true))
@@ -81,7 +96,10 @@ public class RestController extends API {
 				 return internalServerError(AppConstants.INTERNAL_SERVER_ERROR);
 
 			 }
-			 template.convertAndSend(Info7255Application.EXCHANGE, body);
+			 Map<String, String> actionMap = new HashMap<>();
+             actionMap.put("operation", "SAVE");
+             actionMap.put("body", body);
+			 template.convertAndSend(Info7255Application.EXCHANGE, actionMap);
 			 return created(ETag);
 	 	}
 	 	else
@@ -89,6 +107,10 @@ public class RestController extends API {
 	 		return forbidden(authorizationStatus.keySet().toString());
 	 	}
 	 }
+	 
+	 
+	 
+	 
 	 
 	 /**
 	  * 
@@ -98,7 +120,7 @@ public class RestController extends API {
 	  */
 	 
 	 @SuppressWarnings("unused")
-	 @RequestMapping(value = "/get/{objectType}/{ID}", method = RequestMethod.GET)
+	 @RequestMapping(value = "/{objectType}/{ID}", method = RequestMethod.GET)
 	 @ResponseBody
 	 private ResponseEntity<String> GetJSON(@PathVariable("objectType") String objectType, @PathVariable("ID") String objectID, 
 			 @RequestHeader(name = HttpHeaders.AUTHORIZATION) String token) 
@@ -131,6 +153,8 @@ public class RestController extends API {
 		 	}
 	 }
 	 
+	 
+	 
 	 /**
 	  * 
 	  * @param objectType
@@ -139,7 +163,7 @@ public class RestController extends API {
 	  * @return
 	  */
 	 
-	 @RequestMapping(value = "/get/{objectType}/{ID}", method = RequestMethod.GET, headers = "If-Match")
+	 @RequestMapping(value = "/{objectType}/{ID}", method = RequestMethod.GET, headers = "If-Match")
 	 @ResponseBody
 	 private ResponseEntity<String> GetJSONWithETag(@PathVariable("objectType") String objectType,
 	            @PathVariable("ID") String objectId,
@@ -185,7 +209,7 @@ public class RestController extends API {
 	  * @return
 	  */
 	 
-	 @RequestMapping(value = "/delete/{objectType}/{ID}", method = RequestMethod.DELETE)
+	 @RequestMapping(value = "/{objectType}/{ID}", method = RequestMethod.DELETE)
 	 @ResponseBody
 	 private ResponseEntity<String> DeleteJSON(@PathVariable("objectType") String objectType, @PathVariable("ID") String objectID, 
 			 @RequestHeader(name = HttpHeaders.AUTHORIZATION) String token)
@@ -197,6 +221,12 @@ public class RestController extends API {
 				 String keyOfJSONBody = jsonService.GenerateKeyForJSONObject(objectType, objectID);
 				 if(jsonService.DoesPlanExistInSystem(keyOfJSONBody))
 				 {
+				 	Map<String, Object> plan = jsonService.getPlan(keyOfJSONBody);
+	                Map<String, String> actionMap = new HashMap<>();
+	                actionMap.put("operation", "DELETE");
+	                actionMap.put("body", new JSONObject(plan).toString());
+
+	                template.convertAndSend(Info7255Application.QUEUE, actionMap);
 					jsonService.deletePlanRecord(objectType, objectID);
 					 return ResponseEntity.status(HttpStatus.NO_CONTENT).body("{ message : '" + AppConstants.OBJECT_DELETED + "' }");
 				 }
@@ -217,7 +247,7 @@ public class RestController extends API {
 	 }
 	 
 	 
-	 @RequestMapping(value = "/delete/{objectType}/{ID}", method = RequestMethod.DELETE, headers = "If-Match")
+	 @RequestMapping(value = "/{objectType}/{ID}", method = RequestMethod.DELETE, headers = "If-Match")
 	 @ResponseBody
 	 private ResponseEntity<String> DeleteJSONIfMatch(@PathVariable("objectType") String objectType, 
 			 @PathVariable("ID") String objectID, @RequestHeader(name = HttpHeaders.IF_MATCH) String ifMatch, 
@@ -247,7 +277,7 @@ public class RestController extends API {
 		 
 	 }
 	 
-	 @RequestMapping(value = "/edit/{object}/{id}", method = RequestMethod.PATCH, headers = "If-Match")
+	 @RequestMapping(value = "/{object}/{id}", method = RequestMethod.PATCH, headers = "If-Match")
 	    @ResponseBody
 	    public ResponseEntity<String> patchJsonIfNoneMatch(@PathVariable("object") String objectType,
 	            @PathVariable("id") String objectId, @RequestBody String body,
@@ -256,6 +286,7 @@ public class RestController extends API {
 	 {
 	        try
 	        {
+	        	Map<String, String> actionMap = new HashMap<>();
 	        	String actualEtag = null;
 	        	String newETag = "";
 		        JSONObject updatedJSONObject = null;
@@ -283,8 +314,13 @@ public class RestController extends API {
 						  return notFound(AppConstants.OBJECT_NOT_FOUND);
 					  }
 					  newETag = MD5Helper.hashString(body);
+			          Map<String, Object> plan =jsonService.getPlan(key);
+					  
+			          actionMap.put("operation", "SAVE");
+			          actionMap.put("body", new JSONObject(plan).toString());
 					  jsonService.updatePlan(updatedJSONObject, newETag, objectType, objectId);
 				}
+	            template.convertAndSend(Info7255Application.QUEUE, actionMap);
 		       return successfulUpdate(newETag);
 	        }
 	        catch(JSONException jex)
@@ -293,6 +329,8 @@ public class RestController extends API {
 	        }
 
 	    }
+	 
+	 
 	 
 	 
 	
