@@ -205,7 +205,7 @@ public class RestController extends API {
 	 
 	 @RequestMapping(value = "/{objectType}/{ID}", method = RequestMethod.GET, headers = "If-Match")
 	 @ResponseBody
-	 private ResponseEntity<String> GetJSONWithETag(@PathVariable("objectType") String objectType,
+	 private ResponseEntity GetJSONWithETag(@PathVariable("objectType") String objectType,
 	            @PathVariable("ID") String objectId,
 	            @RequestHeader(name = HttpHeaders.IF_MATCH) String ifMatch, @RequestHeader(name = HttpHeaders.AUTHORIZATION) String token)
 	 {
@@ -214,12 +214,17 @@ public class RestController extends API {
 		 {
 			 try 
 			 {
-				 String eTagKey = jsonService.GenerateETagKeyForJSONObject(objectType, objectId);
-				 String ETag = jsonService.GetETagByETagKey(eTagKey);		 
+		         String key = objectType + ":" + objectId;
+		         Map<String, Object> plan = jsonService.getPlan(key);
+		         if(plan == null || plan.isEmpty())
+		         {
+					 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("{ message : '" + AppConstants.OBJECT_NOT_FOUND + "' }");
+
+		         }
+		         String ETag = jsonService.getEtag(key);
 				 if(!ETag.equals(ifMatch)) 
 				 {
-					 JSONObject jsonObject = jsonService.GetPlanByKey(jsonService.GenerateKeyForJSONObject(objectType, objectId));
-					 return ResponseEntity.status(HttpStatus.OK).eTag(ETag).body(jsonObject.toString());
+					 return ResponseEntity.status(HttpStatus.OK).eTag(ETag).body(plan);
 				 }
 				 else 
 				 {
@@ -321,18 +326,6 @@ public class RestController extends API {
 
 	            jsonService.delete(key);
 	            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("{ message : '" + AppConstants.OBJECT_DELETED + "' }");
-//			 String eTagKey = jsonService.GenerateETagKeyForJSONObject(objectType, objectID);
-//			 String ETag = jsonService.GetETagByETagKey(eTagKey);
-//			 if(ifMatch.equals(ETag))
-//			 {
-//				 jsonService.deletePlanRecord(objectType, objectID);
-//
-//			 }
-//			 else 
-//			 {
-//				 return notFound(AppConstants.OBJECT_NOT_FOUND);
-//			 }
-//			 return ResponseEntity.status(HttpStatus.NO_CONTENT).body("{ message : '" + AppConstants.OBJECT_DELETED + "' }");
 		 }
 		 else
 		 {
@@ -364,8 +357,6 @@ public class RestController extends API {
 					}
 
 					actualEtag = jsonService.getEtag(key);
-					System.out.println("Actual ETag: "+actualEtag);
-					System.out.println("ETag from Header: "+eTagFromHeader);
 					  if (eTagFromHeader != null && !eTagFromHeader.equals(actualEtag)) 
 					  {
 			                return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).eTag(actualEtag)

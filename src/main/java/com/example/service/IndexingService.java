@@ -26,7 +26,7 @@ import java.util.*;
 public class IndexingService {
 	private static RestHighLevelClient client = new RestHighLevelClient(
             RestClient.builder(new HttpHost("localhost", 9200, "http")));
-    private static final String IndexName = "indext";
+    private static final String IndexName = "indexh";
     
     public void receiveMessage(Map<String, String> message) throws IOException {
         System.out.println("Message received: " + message);
