@@ -297,18 +297,42 @@ public class RestController extends API {
 		 authorizationStatus = authService.authorize(token);
 		 if(authorizationStatus.containsValue(true))
 		 {
-			 String eTagKey = jsonService.GenerateETagKeyForJSONObject(objectType, objectID);
-			 String ETag = jsonService.GetETagByETagKey(eTagKey);
-			 if(ifMatch.equals(ETag))
-			 {
-				 jsonService.deletePlanRecord(objectType, objectID);
+			 String key = objectType + ":" + objectID;
+	            boolean existingPlan = jsonService.checkIfKeyExists(key);
+	            if (!existingPlan) {
+	            	return ResponseEntity.status(HttpStatus.NOT_FOUND)
+		        			.body(new JSONObject().put("msg", "Plan not found!").toString());
+	            } 
+	            
+	            String actualEtag = jsonService.getEtag(key);
+	            if (ifMatch == null || ifMatch.isEmpty()) {
+	                return new ResponseEntity<>("E-Tag not provided!", HttpStatus.BAD_REQUEST);
+	            }
+	            if (ifMatch != null && !ifMatch.equals(actualEtag)) {
+	                return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).eTag(actualEtag)
+	                		.body(new JSONObject().put("msg", "Plan cannot be found or has been already deleted!!").toString());
+	            }
+	            Map<String, Object> plan = jsonService.getPlan(key);
+	            Map<String, String> actionMap = new HashMap<>();
+	            actionMap.put("operation", "DELETE");
+	            actionMap.put("body", new JSONObject(plan).toString());
 
-			 }
-			 else 
-			 {
-				 return notFound(AppConstants.OBJECT_NOT_FOUND);
-			 }
-			 return ResponseEntity.status(HttpStatus.NO_CONTENT).body("{ message : '" + AppConstants.OBJECT_DELETED + "' }");
+	            template.convertAndSend(Info7255Application.QUEUE, actionMap);
+
+	            jsonService.delete(key);
+	            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("{ message : '" + AppConstants.OBJECT_DELETED + "' }");
+//			 String eTagKey = jsonService.GenerateETagKeyForJSONObject(objectType, objectID);
+//			 String ETag = jsonService.GetETagByETagKey(eTagKey);
+//			 if(ifMatch.equals(ETag))
+//			 {
+//				 jsonService.deletePlanRecord(objectType, objectID);
+//
+//			 }
+//			 else 
+//			 {
+//				 return notFound(AppConstants.OBJECT_NOT_FOUND);
+//			 }
+//			 return ResponseEntity.status(HttpStatus.NO_CONTENT).body("{ message : '" + AppConstants.OBJECT_DELETED + "' }");
 		 }
 		 else
 		 {
@@ -328,40 +352,41 @@ public class RestController extends API {
 	        {
 	        	Map<String, String> actionMap = new HashMap<>();
 	        	String actualEtag = null;
-	        	String newETag = "";
-		        JSONObject updatedJSONObject = null;
 		        
 		        authorizationStatus = authService.authorize(token);
 				if(authorizationStatus.containsValue(true))
 				{
-					String key = jsonService.GenerateKeyForJSONObject(objectType, objectId);
-					JSONObject jsonObject = jsonService.GetPlanByKey(key);
-					if(!jsonService.DoesPlanExistInSystem(key))
+		            JSONObject jsonPlan = new JSONObject(body);
+					String key =  objectType + ":" + objectId;
+					if(!jsonService.checkIfKeyExists(key))
 					{
 						return notFound(AppConstants.OBJECT_NOT_FOUND);
 					}
-					actualEtag = jsonService.GetETagOfSavedPlan(objectType, objectId);
 
+					actualEtag = jsonService.getEtag(key);
+					System.out.println("Actual ETag: "+actualEtag);
+					System.out.println("ETag from Header: "+eTagFromHeader);
 					  if (eTagFromHeader != null && !eTagFromHeader.equals(actualEtag)) 
 					  {
 			                return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).eTag(actualEtag)
 			                        .body(new JSONObject().put("message", "Plan was updated by another user").toString());
 			           }
-					  JSONObject bodyOfUpdatedJSON = jsonService.ValidateWhetherSchemaIsValid(body);
-					  updatedJSONObject = jsonService.mergeJson(bodyOfUpdatedJSON, jsonService.GenerateKeyForJSONObject(objectType, objectId));
-					  if(jsonObject == null || jsonObject.isEmpty())
-					  {
-						  return notFound(AppConstants.OBJECT_NOT_FOUND);
-					  }
-					  newETag = MD5Helper.hashString(body);
-			          Map<String, Object> plan =jsonService.getPlan(key);
-					  
+					  String newEtag = jsonService.save(jsonPlan, key, body);
+			          Map<String, Object> plan = jsonService.getPlan(key);
+
 			          actionMap.put("operation", "SAVE");
 			          actionMap.put("body", new JSONObject(plan).toString());
-					  jsonService.updatePlan(updatedJSONObject, newETag, objectType, objectId);
+
+			          System.out.println("Sending message: " + actionMap);
+			          template.convertAndSend(Info7255Application.QUEUE, actionMap);
+					  return successfulUpdate(newEtag);
+
 				}
-	            template.convertAndSend(Info7255Application.QUEUE, actionMap);
-		       return successfulUpdate(newETag);
+				else {
+					 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("{ message : '" +authorizationStatus.keySet().toString() + "' }");
+
+				}
+	            
 	        }
 	        catch(JSONException jex)
 	        {

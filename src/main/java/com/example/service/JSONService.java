@@ -165,6 +165,7 @@ public class JSONService {
 	 // merge the incoming json object with the object in db.
     public JSONObject mergeJson(JSONObject json, String objectKey) 
     {
+    	Map<String, Object> plan = getPlan(objectKey);
         JSONObject savedObject = GetPlanByKey(objectKey);
         if (savedObject == null)
             return null;
@@ -182,7 +183,7 @@ public class JSONService {
                 if (jsonValue instanceof JSONObject) 
                 {
                     JSONObject jsonValueObject = (JSONObject)jsonValue;
-                    String jsonObjKey = jsonKey + "-" + jsonValueObject.get("objectId");
+                    String jsonObjKey = jsonKey + ":" + jsonValueObject.get("objectId");
                     if (((JSONObject)savedObject.get(jsonKey)).get("objectId").equals(jsonValueObject.get("objectId"))) 
                     {
                         savedObject.put(jsonKey, jsonValue);
@@ -388,6 +389,10 @@ public class JSONService {
         }
 //        System.out.println("MAP: " + map.toString());
         return map;
+    }
+    
+    public void delete(String id) {
+        getOrDeleteData(id, null, true);
     }
 
 }
