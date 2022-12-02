@@ -1,6 +1,7 @@
 package com.example.service;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.springframework.data.redis.core.HashOperations;
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.*;
 
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
@@ -30,6 +32,7 @@ public class JSONService {
 	 PlanDAO planDAO = new PlanDAO();
 	 private Jedis jedis = new Jedis();
 	 private HashOperations hashOperations;
+	 ETagHandler eTagService;
 	 /**
 	  * 
 	  * @param json
@@ -85,6 +88,11 @@ public class JSONService {
 		}
 		return false;
 	}
+	
+	 public boolean checkIfKeyExists(String objectKey) {
+	        return jedis.exists(objectKey);
+
+	    }
 	
 	/**
 	 * 
@@ -311,4 +319,75 @@ public class JSONService {
 
         return -1;
     }
+    
+    public String save(JSONObject plan, String key, String requestBody) throws JSONException, NoSuchAlgorithmException {
+        convertToMap(plan);
+        String ETag = MD5Helper.hashString(requestBody);
+        jedis.hset(key, "eTag", ETag);
+        return ETag;
+    }
+    
+    public String getEtag(String key) {
+        return jedis.hget(key, "eTag");
+    }
+
+    public String setEtag(String key, JSONObject jsonObject) {
+        String eTag = eTagService.getETag(jsonObject);
+        jedis.hset(key, "eTag", eTag);
+        return eTag;
+    }
+    
+    private List<Object> convertToList(JSONArray array) throws JSONException {
+        List<Object> list = new ArrayList<>();
+        for (int i = 0; i < array.length(); i++) {
+            Object value = array.get(i);
+            if (value instanceof JSONArray) {
+                value = convertToList((JSONArray) value);
+            } else if (value instanceof JSONObject) {
+                value = convertToMap((JSONObject) value);
+            }
+            list.add(value);
+        }
+        return list;
+    }
+    
+    public Map<String, Map<String, Object>> convertToMap(JSONObject jsonObject) throws JSONException {
+
+        Map<String, Map<String, Object>> map = new HashMap<>();
+        Map<String, Object> valueMap = new HashMap<>();
+        Iterator<String> iterator = jsonObject.keys();
+
+        while (iterator.hasNext()) {
+
+            String redisKey = jsonObject.get("objectType") + ":" + jsonObject.get("objectId");
+            String key = iterator.next();
+            Object value = jsonObject.get(key);
+
+            if (value instanceof JSONObject) {
+
+                value = convertToMap((JSONObject) value);
+                HashMap<String, Map<String, Object>> val = (HashMap<String, Map<String, Object>>) value;
+                jedis.sadd(redisKey + ":" + key, val.entrySet().iterator().next().getKey());
+                jedis.close();
+
+            } else if (value instanceof JSONArray) {
+                value = convertToList((JSONArray) value);
+                for (HashMap<String, HashMap<String, Object>> entry : (List<HashMap<String, HashMap<String, Object>>>) value) {
+                    for (String listKey : entry.keySet()) {
+                        jedis.sadd(redisKey + ":" + key, listKey);
+                        jedis.close();
+                        System.out.println(redisKey + ":" + key + " : " + listKey);
+                    }
+                }
+            } else {
+                jedis.hset(redisKey, key, value.toString());
+                jedis.close();
+                valueMap.put(key, value);
+                map.put(redisKey, valueMap);
+            }
+        }
+//        System.out.println("MAP: " + map.toString());
+        return map;
+    }
+
 }

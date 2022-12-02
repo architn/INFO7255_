@@ -109,7 +109,47 @@ public class RestController extends API {
 	 }
 	 
 	 
-	 
+	 @RequestMapping(value = "/add", method = RequestMethod.POST)
+	 public ResponseEntity<String> AddNewPlan(@RequestBody String request, @RequestHeader HttpHeaders requestHeaders) throws IOException
+	 {
+		 try {
+			 String token = requestHeaders.getFirst("Authorization");
+			 authorizationStatus = authService.authorize(token);
+			 JSONObject jsonPlan = new JSONObject(request);
+			 if(authorizationStatus.containsValue(true))
+			 {
+				 JSONObject jsonObject = jsonService.ValidateWhetherSchemaIsValid(request);
+				 String key = jsonPlan.get("objectType") + ":" + jsonPlan.get("objectId");
+				 boolean existingPlan = jsonService.checkIfKeyExists(key);
+				 if(!existingPlan)
+				 {
+					String eTag = jsonService.save(jsonPlan, key, request);
+	                JSONObject obj = new JSONObject();
+	                obj.put("ObjectId", jsonPlan.get("objectId"));
+
+	                Map<String, String> actionMap = new HashMap<>();
+	                actionMap.put("operation", "SAVE");
+	                actionMap.put("body", request);
+	                template.convertAndSend(Info7255Application.QUEUE, actionMap);
+	                return created(eTag);
+				 }
+				 else {
+					 return conflict(AppConstants.OBJECT_ALREADY_EXISTS);
+				 }
+			 }
+			 else {
+				 return forbidden(authorizationStatus.keySet().toString());
+			 }
+		 }
+		 catch(ValidationException v) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("{ message : '" + v.getMessage() + "' }");
+			}
+		 catch(Exception ex) {
+			 ex.printStackTrace();
+			 return internalServerError(AppConstants.INTERNAL_SERVER_ERROR);
+
+		 }
+	 }
 	 
 	 
 	 /**
